@@ -1,6 +1,10 @@
 # ttsDev
 A simple stremlit web interface designed for quick and efficient comparison of various Text-to-Speech (TTS) models. 
 
+
+![Screenshot 2023-11-18 at 11 06 11 PM](https://github.com/JoelKronander/ttsDev/assets/18355572/07b7beb5-a51f-4b12-915e-e50efa78db03)
+
+
 ## Installation
 To install, simply run the following commands:
 `poetry install`
