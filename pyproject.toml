@@ -1,11 +1,11 @@
 [tool.poetry]
-name = "ttsdev"
+name = "ttsDev"
 version = "0.1.0"
 description = "A simple stremlit web interface designed for quick and efficient comparison of various Text-to-Speech (TTS) models. "
 authors = ["Joel <joelkronander@gmail.com>"]
 license = "Apache-2.0"
 readme = "README.md"
-packages = [{include = "ttsdev"}]
+packages = [{include = "ttsDev"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
