@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "yourpod-ai"
+version = "0.1.0"
+description = "YourPod.ai is a podcast-on-demand service that leverages GPT-4 an Text-to-Speec to craft personalized podcasts on a variety of topics."
+authors = ["Joel <joelkronander@gmail.com>"]
+license = "Apache-2.0"
+readme = "README.md"
+packages = [{include = "yourpod"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+streamlit = "^1.27.2"
+elevenlabs = "^0.2.26"
+langchain = "^0.0.323"
+buzzsprout-manager = "^0.0.3"
+pydub = "^0.25.1"
+openai = "^1.3.0"
+instructor = "^0.3.4"
+python-ffmpeg = "^2.0.4"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
