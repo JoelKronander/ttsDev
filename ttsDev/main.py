@@ -8,6 +8,8 @@ import io
 from openai import AsyncOpenAI, OpenAI
 from pathlib import Path
 from typing import List
+import datetime
+import uuid
 
 st.set_page_config(
     page_title="ttsDev",
@@ -75,7 +77,7 @@ def generate_random_gpt_text(openai_api_key):
 
 
 def initialize_session():
-    keys = ['session_id', 'openai_api_key', 'elevenlabs_api_key', 'lmnt_api_key', 'input_text']
+    keys = ['session_id', 'openai_api_key', 'elevenlabs_api_key', 'lmnt_api_key', 'input_text', 'name_of_cloned_voice']
     for key in keys:
         if key not in st.session_state:
             st.session_state[key] = None
@@ -100,9 +102,25 @@ elevenlabs_api_key = st.sidebar.text_input("Elevenlabs API Key")
 if elevenlabs_api_key:
     st.session_state.elevenlabs_api_key = elevenlabs_api_key
     elevenlabs.set_api_key(elevenlabs_api_key)
-    elevenlab_voices = [v.name for v in elevenlabs.voices()]
+    voice_cloning_file = st.sidebar.file_uploader(
+            "Upload an audio file to create a new voice from voice cloning.", type=["wav"]
+        )
+    if voice_cloning_file:
+        name_of_cloned_voice = st.sidebar.text_input("Name of cloned voice")
+        clone_button = st.sidebar.button("Clone voice")
+        if clone_button:
+            with NamedTemporaryFile(suffix=".mp3", delete=True) as temp_file:
+                temp_file_name = temp_file.name  # Get the file path
+                with open(temp_file_name, "wb") as f:
+                    f.write(voice_cloning_file.read())
+                new_voice = elevenlabs.clone(
+                    name=name_of_cloned_voice+"_"+str(datetime.datetime.now()),
+                    description="Custom voice",
+                    files=[temp_file_name],
+                )
+    elevenlab_voices = [v for v in elevenlabs.voices()]
     for voice in elevenlab_voices:
-        st.session_state.elevenlabs_selected_voices.append([voice, st.sidebar.checkbox(voice, value=False)])
+        st.session_state.elevenlabs_selected_voices.append([voice.name, st.sidebar.checkbox(voice.name, key=voice.voice_id, value=False)])
 
 lmnt_api_key = st.sidebar.text_input("LMNT API Key")
 if lmnt_api_key:
