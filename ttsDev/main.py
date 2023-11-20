@@ -1,6 +1,7 @@
 import streamlit as st
 import asyncio
 import elevenlabs
+from lmnt.api import Speech as LmntSpeech
 from tempfile import NamedTemporaryFile
 from pydub import AudioSegment
 import io
@@ -22,7 +23,18 @@ def eleven_labs_text_2_speech(text: str, voice: elevenlabs.Voice):
     return audio
 
 
-async def text2speect_openai_single_voice(text, voice, client):
+async def lmnt_text_2_speech(text: str, voice: str):
+    async with LmntSpeech(st.session_state.lmnt_api_key) as speech:
+        response = await speech.synthesize(text, voice)
+        return response["audio"]
+
+
+async def lmnt_get_voices():
+    async with LmntSpeech(st.session_state.lmnt_api_key) as speech:
+        return await speech.list_voices()
+
+
+async def text2speech_openai_single_voice(text, voice, client):
     response = await client.audio.speech.create(
         model="tts-1",
         voice=voice,
@@ -45,11 +57,10 @@ async def text_2_speech_openai(text, voices) -> List[io.BytesIO]:
     client = AsyncOpenAI(api_key=openai_api_key)
     tasks = []
     for voice in voices:
-        tasks.append(text2speect_openai_single_voice(text, voice, client))
+        tasks.append(text2speech_openai_single_voice(text, voice, client))
     chunk_audios = await asyncio.gather(*tasks)
 
     return chunk_audios
-
 
 def generate_random_gpt_text(openai_api_key):
     client = OpenAI(api_key=openai_api_key)
@@ -64,7 +75,7 @@ def generate_random_gpt_text(openai_api_key):
 
 
 def initialize_session():
-    keys = ['session_id', 'openai_api_key', 'elevenlabs_api_key', 'input_text']
+    keys = ['session_id', 'openai_api_key', 'elevenlabs_api_key', 'lmnt_api_key', 'input_text']
     for key in keys:
         if key not in st.session_state:
             st.session_state[key] = None
@@ -72,6 +83,7 @@ def initialize_session():
 initialize_session()
 st.session_state.openai_selected_voices = []
 st.session_state.elevenlabs_selected_voices = []
+st.session_state.lmnt_selected_voices = []
 st.title("ttsDev")
 st.subheader("Text to speech development tool, that lets you compare different voices from different providers.")
 
@@ -91,6 +103,12 @@ if elevenlabs_api_key:
     elevenlab_voices = [v.name for v in elevenlabs.voices()]
     for voice in elevenlab_voices:
         st.session_state.elevenlabs_selected_voices.append([voice, st.sidebar.checkbox(voice, value=False)])
+
+lmnt_api_key = st.sidebar.text_input("LMNT API Key")
+if lmnt_api_key:
+    st.session_state.lmnt_api_key = lmnt_api_key
+    for voice in asyncio.run(lmnt_get_voices()):
+        st.session_state.lmnt_selected_voices.append([voice, st.sidebar.checkbox(voice["name"], key=voice["id"], value=False)])
 
 if st.button("Generate GPT4 blurb"):
     text = generate_random_gpt_text(st.session_state.openai_api_key)
@@ -116,6 +134,14 @@ if st.button("Run TTS"):
             s = st.container()
             with s:
                 st.subheader(f"Elevenlabs voice {elevenlabs_voice}")
+                st.audio(audio, format="audio/mp3")
+
+        lmnt_voices_to_generate = [voice[0] for voice in st.session_state.lmnt_selected_voices if voice[1]]
+        for lmnt_voice in lmnt_voices_to_generate:
+            audio = asyncio.run(lmnt_text_2_speech(user_input, lmnt_voice["id"]))
+            s = st.container()
+            with s:
+                st.subheader(f"LMNT voice {lmnt_voice['name']}")
                 st.audio(audio, format="audio/mp3")
 
     else:
