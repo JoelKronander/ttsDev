@@ -36,6 +36,12 @@ async def lmnt_get_voices():
         return await speech.list_voices()
 
 
+async def lmnt_clone_voice(name: str, files: List[str], description: str = None):
+    async with LmntSpeech(st.session_state.lmnt_api_key) as speech:
+        response = await speech.create_voice(name, False, files, description=description)
+        return response
+
+
 async def text2speech_openai_single_voice(text, voice, client):
     response = await client.audio.speech.create(
         model="tts-1",
@@ -82,6 +88,25 @@ def initialize_session():
         if key not in st.session_state:
             st.session_state[key] = None
 
+
+def handle_voice_cloning(clone_func, is_async, api_name):
+    voice_cloning_file = st.sidebar.file_uploader(
+        "Upload an audio file to create a new voice from voice cloning.", type=["wav"], key=api_name + "_voice_cloning_file"
+    )
+    if voice_cloning_file:
+        name_of_cloned_voice = st.sidebar.text_input("Name of cloned voice", key=api_name + "_name_of_cloned_voice")
+        clone_button = st.sidebar.button("Clone voice", key=api_name + "_clone_button")
+        if clone_button:
+            with NamedTemporaryFile(suffix=".mp3", delete=True) as temp_file:
+                temp_file_name = temp_file.name
+                with open(temp_file_name, "wb") as f:
+                    f.write(voice_cloning_file.read())
+                if is_async:
+                    asyncio.run(clone_func(name=name_of_cloned_voice+"_"+str(datetime.datetime.now()), files=[temp_file_name], description="Custom voice"))
+                else:
+                    clone_func(name=name_of_cloned_voice+"_"+str(datetime.datetime.now()), files=[temp_file_name], description="Custom voice")
+
+
 initialize_session()
 st.session_state.openai_selected_voices = []
 st.session_state.elevenlabs_selected_voices = []
@@ -102,22 +127,7 @@ elevenlabs_api_key = st.sidebar.text_input("Elevenlabs API Key")
 if elevenlabs_api_key:
     st.session_state.elevenlabs_api_key = elevenlabs_api_key
     elevenlabs.set_api_key(elevenlabs_api_key)
-    voice_cloning_file = st.sidebar.file_uploader(
-            "Upload an audio file to create a new voice from voice cloning.", type=["wav"]
-        )
-    if voice_cloning_file:
-        name_of_cloned_voice = st.sidebar.text_input("Name of cloned voice")
-        clone_button = st.sidebar.button("Clone voice")
-        if clone_button:
-            with NamedTemporaryFile(suffix=".mp3", delete=True) as temp_file:
-                temp_file_name = temp_file.name  # Get the file path
-                with open(temp_file_name, "wb") as f:
-                    f.write(voice_cloning_file.read())
-                new_voice = elevenlabs.clone(
-                    name=name_of_cloned_voice+"_"+str(datetime.datetime.now()),
-                    description="Custom voice",
-                    files=[temp_file_name],
-                )
+    handle_voice_cloning(elevenlabs.clone, False, "elevenlabs")
     elevenlab_voices = [v for v in elevenlabs.voices()]
     for voice in elevenlab_voices:
         st.session_state.elevenlabs_selected_voices.append([voice.name, st.sidebar.checkbox(voice.name, key=voice.voice_id, value=False)])
@@ -125,6 +135,7 @@ if elevenlabs_api_key:
 lmnt_api_key = st.sidebar.text_input("LMNT API Key")
 if lmnt_api_key:
     st.session_state.lmnt_api_key = lmnt_api_key
+    handle_voice_cloning(lmnt_clone_voice, True, "lmnt")
     for voice in asyncio.run(lmnt_get_voices()):
         st.session_state.lmnt_selected_voices.append([voice, st.sidebar.checkbox(voice["name"], key=voice["id"], value=False)])
 
