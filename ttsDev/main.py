@@ -139,28 +139,37 @@ user_input = st.text_area("Enter text for TTS", key='input_text', height=200)
 if st.button("Run TTS"):
     if user_input:
         openai_voices_to_generate = [voice[0] for voice in st.session_state.openai_selected_voices if voice[1]]
-        audios = asyncio.run(text_2_speech_openai(user_input, openai_voices_to_generate))
-        for openai_voice, audio in zip(openai_voices_to_generate, audios):
-            s = st.container()
-            with s:
-                st.subheader(f"OpenAI voice {openai_voice}")
-                st.audio(audio, format="audio/mp3")
-
+        try:
+            audios = asyncio.run(text_2_speech_openai(user_input, openai_voices_to_generate))
+            for openai_voice, audio in zip(openai_voices_to_generate, audios):
+                s = st.container()
+                with s:
+                    st.subheader(f"OpenAI voice {openai_voice}")
+                    st.audio(audio, format="audio/mp3")
+        except Exception as e:
+            st.error(e)
+            
         elevenlabs_voices_to_generate = [voice[0] for voice in st.session_state.elevenlabs_selected_voices if voice[1]]
-        for elevenlabs_voice in elevenlabs_voices_to_generate:
-            audio = eleven_labs_text_2_speech(user_input, elevenlabs_voice)
-            s = st.container()
-            with s:
-                st.subheader(f"Elevenlabs voice {elevenlabs_voice}")
-                st.audio(audio, format="audio/mp3")
+        try:
+            for elevenlabs_voice in elevenlabs_voices_to_generate:
+                audio = eleven_labs_text_2_speech(user_input, elevenlabs_voice)
+                s = st.container()
+                with s:
+                    st.subheader(f"Elevenlabs voice {elevenlabs_voice}")
+                    st.audio(audio, format="audio/mp3")
+        except Exception as e:
+            st.error(e)
 
         lmnt_voices_to_generate = [voice[0] for voice in st.session_state.lmnt_selected_voices if voice[1]]
-        for lmnt_voice in lmnt_voices_to_generate:
-            audio = asyncio.run(lmnt_text_2_speech(user_input, lmnt_voice["id"]))
-            s = st.container()
-            with s:
-                st.subheader(f"LMNT voice {lmnt_voice['name']}")
-                st.audio(audio, format="audio/mp3")
+        try:
+            for lmnt_voice in lmnt_voices_to_generate:
+                audio = asyncio.run(lmnt_text_2_speech(user_input, lmnt_voice["id"]))
+                s = st.container()
+                with s:
+                    st.subheader(f"LMNT voice {lmnt_voice['name']}")
+                    st.audio(audio, format="audio/mp3")
+        except Exception as e:
+            st.error(e)
 
     else:
         st.error("Please enter some text to generate text to speech from.")
